@@ -159,9 +159,11 @@ class PDFDocument:
 
         self.style = style
 
-        self.pdf.formats = {}
-        self.pdf.formats['$footnote'] = {'r': 0.5, 's': 6}
-        self.pdf.formats['$footnotes'] = {'s': 10, 'c': 0}
+        self.pdf.formats = {
+            '$footnote': {'r': 0.5, 's': 6},
+            '$footnotes': {'s': 10, 'c': 0},
+        }
+
         self.pdf.formats.update(document.get('formats', {}))
         self.pdf.context.update(context)
 
@@ -421,7 +423,7 @@ class PDFDocument:
         """
         page_footnotes = []
         self._check_footnotes(page_footnotes)
-        if len(page_footnotes) == 0:
+        if not page_footnotes:
             return None
         return self._get_footnotes_obj(page_footnotes)
 

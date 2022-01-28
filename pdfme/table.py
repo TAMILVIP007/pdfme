@@ -298,22 +298,21 @@ class PDFTable:
         Returns:
             iterable: a list of indexes, or a ``range`` object.
         """
-        data = ':' if data == '' else data
-        if ':' in data:
-            parts = data.split(':')
-            num = 0 if parts[0].strip() == '' else int(parts[0])
-            parts[0] = num if num >= 0 else count + num
-            if len(parts) > 1:
-                num = count if parts[1].strip() == '' else int(parts[1])
-                parts[1] = num if num >= 0 else count + num
-            if len(parts) > 2:
-                parts[2] = 1 if parts[2].strip() == '' else int(parts[2])
-            return range(*parts)
-        else:
+        data = ':' if not data else data
+        if ':' not in data:
             return [
                 count + int(i) if int(i) < 0 else int(i)
                 for i in data.split(',')
             ]
+        parts = data.split(':')
+        num = 0 if parts[0].strip() == '' else int(parts[0])
+        parts[0] = num if num >= 0 else count + num
+        if len(parts) > 1:
+            num = count if parts[1].strip() == '' else int(parts[1])
+            parts[1] = num if num >= 0 else count + num
+        if len(parts) > 2:
+            parts[2] = 1 if parts[2].strip() == '' else int(parts[2])
+        return range(*parts)
 
     def setup_borders(self, borders: Iterable) -> None:
         """Method to process the ``borders`` argument passed to this class, and
@@ -472,9 +471,9 @@ class PDFTable:
         self.heights_mem = {}
         self.rowspan = {}
         self.vert_lines = [
-            {'list': [], 'interrupted': True}
-            for i in range(self.cols_count + 1)
+            {'list': [], 'interrupted': True} for _ in range(self.cols_count + 1)
         ]
+
         self.current_height = 0
 
         can_continue = True
@@ -508,7 +507,7 @@ class PDFTable:
         self.top_lines_interrupted = True
         self.y_abs = self.y - self.current_height
         for col in range(self.cols_count):
-            self.x_abs = self.x + sum(self.widths[0:col]) * self.width
+            self.x_abs = self.x + sum(self.widths[:col]) * self.width
             border_top = self.get_border(self.current_index, col, False)
             self.process_borders(col, {}, border_top)
 
@@ -534,7 +533,7 @@ class PDFTable:
             str: string with the action that should be performed after this row
             is added.
         """
-        if not len(row) == self.cols_count:
+        if len(row) != self.cols_count:
             error = 'row {} should be of length {}.'
             raise Exception(error.format(self.current_index+1, self.cols_count))
 
@@ -546,8 +545,7 @@ class PDFTable:
         self.is_rowspan = False
         self.y_abs = self.y - self.current_height
         for col, element in enumerate(row):
-            move_next = self.add_cell(col, element, is_delayed)
-            if move_next:
+            if move_next := self.add_cell(col, element, is_delayed):
                 continue
 
         if self.first_row:
@@ -559,7 +557,7 @@ class PDFTable:
         if sum(v['colspan'] for v in self.delayed.values()) == self.cols_count:
             ret = False
         for col in self.delayed:
-            if not col in self.rowspan:
+            if col not in self.rowspan:
                 ret = False
                 break
 
@@ -701,16 +699,13 @@ class PDFTable:
                     + str(element)
                 )
 
-            keys = [key for key in element.keys() if key.startswith('.')]
-            if len(keys) > 0:
+            if keys := [key for key in element.keys() if key.startswith('.')]:
                 style.update(parse_style_str(keys[0][1:], self.fonts))
             style.update(process_style(element.get('style'), self.pdf))
-            cell_style = {}
             attr = 'cell_margin'
-            for side in ('top', 'right', 'bottom', 'left'):
-                cell_style[attr + '_' + side] = style.pop(
+            cell_style = {attr + '_' + side: style.pop(
                     attr + '_' + side, style.get(attr, None)
-                )
+                ) for side in ('top', 'right', 'bottom', 'left')}
             style.pop(attr, None)
             cell_style['cell_fill'] = style.pop('cell_fill', None)
         element = copy(element)
@@ -728,7 +723,7 @@ class PDFTable:
             width (Number): the width of the cell.
             rowspan (int): the rowspan of the cell.
         """
-        fill_color = cell_style.get('cell_fill', None)
+        fill_color = cell_style.get('cell_fill')
 
         if fill_color is None:
             fill_color = (
@@ -762,7 +757,7 @@ class PDFTable:
             bool: whether ``col`` is part of a spanned cell (``True``) or not
             (``False``).
         """
-        self.x_abs = self.x + sum(self.widths[0:col]) * self.width
+        self.x_abs = self.x + sum(self.widths[:col]) * self.width
         border_left = self.get_border(self.current_index, col, True)
         border_top = self.get_border(self.current_index, col, False)
         can_continue = self.is_span(col, border_left, border_top, is_delayed)
@@ -795,7 +790,7 @@ class PDFTable:
 
         real_height = 0
         did_finished = False
-        if len(keys) > 0 or self._is_delayed_type(element, 'text'):
+        if keys or self._is_delayed_type(element, 'text'):
             real_height, did_finished = self.process_text(
                 element, x, y, width, height, style, delayed
             )
@@ -890,10 +885,7 @@ class PDFTable:
         Returns:
             float: the height of the image.
         """
-        if 'delayed' in element:
-            pdf_image = element['delayed']
-        else:
-            pdf_image = PDFImage(element['image'])
+        pdf_image = element.get('delayed', PDFImage(element['image']))
         img_width = width
         img_height = img_width * pdf_image.height / pdf_image.width
 
@@ -901,11 +893,17 @@ class PDFTable:
         finished = False
         if img_height < height:
             real_height = img_height
-            self.parts.append({
-                'type': 'image', 'pdf_image': pdf_image,
-                'x': x, 'y': y - img_height,
-                'width': img_width, 'height': img_height
-            })
+            self.parts.append(
+                {
+                    'type': 'image',
+                    'pdf_image': pdf_image,
+                    'x': x,
+                    'y': y - real_height,
+                    'width': img_width,
+                    'height': real_height,
+                }
+            )
+
             finished = True
         else:
             delayed.update({'delayed': pdf_image, 'type': 'image'})

@@ -35,12 +35,10 @@ def gen_rich_text(n, size=7):
             if maybe():
                 if k in ['b', 'i', 'u']:
                     style.append(k)
-                elif k == 'r' and v != 0:
+                elif k == 'r' and v != 0 or k not in ['bg', 'c']:
                     style.append(k+':'+str(v))
-                elif k in ['bg', 'c']:
-                    style.append(k+':'+ (' '.join(str(t) for t in v)))
                 else:
-                    style.append(k+':'+str(v))
+                    style.append(k+':'+ (' '.join(str(t) for t in v)))
         key += ';'.join(style)
 
     obj[key] = []
@@ -55,11 +53,10 @@ def gen_rich_text(n, size=7):
             v = [v for k,v in ans.items() if k.startswith('.')][0]
             if ans is not None and len(v) > 0:
                 obj[key].append(ans)
+        elif len(obj[key]) > 0 and isinstance(obj[key][-1], str):
+            obj[key][-1] += gen_text(words)
         else:
-            if len(obj[key]) > 0 and isinstance(obj[key][-1], str):
-                obj[key][-1] += gen_text(words)
-            else:
-                obj[key].append(gen_text(words))
+            obj[key].append(gen_text(words))
         i += 1
 
     return obj
@@ -94,13 +91,12 @@ def gen_content(size, font_size=4, level=1, max_level=3):
         if i%2 == l:
             ans = gen_content(size, font_size, level + 1, max_level)
             c.append(ans)
+        elif maybe(0.5):
+            c.append(gen_text(random.randint(50, 300)))
         else:
-            if maybe(0.5):
-                c.append(gen_text(random.randint(50, 300)))
-            else:
-                c.append({'image': 'tests/image_test.jpg', 'style':
-                    {'image_place': 'flow' if maybe(0.7) else 'normal'}
-                })
+            c.append({'image': 'tests/image_test.jpg', 'style':
+                {'image_place': 'flow' if maybe(0.7) else 'normal'}
+            })
 
     return obj
 
@@ -109,8 +105,7 @@ def gen_table(rows=None, cols=None):
     rows = 10 if rows is None else rows
     cols = int(random.triangular(1, 7, 2)) if cols is None else cols
 
-    obj = {'content': []}
-    obj['widths'] = [random.triangular(3, 6) for _ in range(cols)]
+    obj = {'content': [], 'widths': [random.triangular(3, 6) for _ in range(cols)]}
     style_ = {
         'cell_fill': color(), 'cell_margin': random.triangular(5, 20, 5),
         'border_width': random.triangular(1, 3), 'border_color': color(0, 0.6),

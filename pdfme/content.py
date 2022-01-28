@@ -517,21 +517,19 @@ class PDFContentPart:
         Returns:
             A string telling the main loop what should do next.
         """
-        if ans == 'interrupt':
-            return ans
-        elif ans == 'partial_next':
-            if self.partial_children_memory is None:
-                return ans
-            else:
-                return 'retry'
-        elif ans == 'break':
+        if ans == 'break':
             return self.is_element_resetting()
+        elif ans == 'interrupt':
+            return ans
         elif ans == 'next':
             next_section_ret = self.next_section()
             if next_section_ret == 'break':
                 return self.is_element_resetting()
             else:
                 return next_section_ret
+
+        elif ans == 'partial_next':
+            return ans if self.partial_children_memory is None else 'retry'
 
     def run(self) -> str:
         """Function to run the main loop that will add the content elements to
@@ -583,14 +581,12 @@ class PDFContentPart:
             True if this element is the las element of an ancestor that is
             resetting.
         """
-        parent = self.parent
-        if parent:
-            if self.last:
-                if parent.resetting:
-                    parent.mimim_forward = False
-                    return True
-                else:
+        if self.last:
+            if parent := self.parent:
+                if not parent.resetting:
                     return parent.last_child_of_resetting()
+                parent.mimim_forward = False
+                return True
         return False
 
     def start_resetting(self) -> None:
@@ -785,14 +781,14 @@ class PDFContentPart:
 
         style = {}
         style.update(self.style)
-        if len(keys) > 0:
+        if keys:
             style.update(parse_style_str(keys[0][1:], self.p.fonts))
         element_style = process_style(element.get('style'), self.p.pdf)
         style.update(element_style)
 
         self.update_dimensions(style)
 
-        if len(keys) > 0 or 'paragraph' in element:
+        if keys or 'paragraph' in element:
             return self.process_text(element, style, element_style)
         elif 'image' in element:
             return self.process_image(element, style)
@@ -845,9 +841,8 @@ class PDFContentPart:
 
         if pdf_text.finished:
             return {'delayed': None, 'next': False}
-        else:
-            remaining['state'] = pdf_text.get_state()
-            return {'delayed': remaining, 'next': True}
+        remaining['state'] = pdf_text.get_state()
+        return {'delayed': remaining, 'next': True}
 
     def process_image(self, element: dict, style: dict) -> dict:
         """Function that tries to add an image to the current column rectangle,
@@ -925,11 +920,10 @@ class PDFContentPart:
         if pdf_table.current_height > 0:
             self.add_top_margin(style)
 
-        if not pdf_table.finished:
-            remaining['state'] = pdf_table.get_state()
-            return {'delayed': remaining, 'next': True}
-        else:
+        if pdf_table.finished:
             return {'delayed': None, 'next': False}
+        remaining['state'] = pdf_table.get_state()
+        return {'delayed': remaining, 'next': True}
 
     def process_child(self, element: dict, style: dict, last: bool) -> StrOrDict:
         """Function that tries to add a child content to the current column
@@ -977,9 +971,8 @@ class PDFContentPart:
 
         if action in ['interrupt', 'break', 'partial_next']:
             return action
-        else:
-            self.starting = False
-            return {'delayed': None, 'next': False}
+        self.starting = False
+        return {'delayed': None, 'next': False}
 
 from .fonts import PDFFonts
 from .image import PDFImage

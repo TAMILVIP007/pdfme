@@ -91,16 +91,14 @@ class PDFBase:
         return obj
 
     def __getitem__(self, i: int) -> 'PDFObject':
-        if i == 0: return None
-        return self.content[i - 1]
+        return None if i == 0 else self.content[i - 1]
 
     def __setitem__(self, i: int, value: 'PDFObject') -> None:
         if i > 0:
             self.content[i - 1] = value
 
     def __iter__(self) -> None:
-        for el in [None] + self.content:
-            yield el
+        yield from [None] + self.content
 
     def __len__(self) -> int:
         return len(self.content)

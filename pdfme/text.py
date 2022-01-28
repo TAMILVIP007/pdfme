@@ -27,9 +27,9 @@ class PDFState:
             f_mode += 'b'
         if style.get('i', False):
             f_mode += 'i'
-        if f_mode == '':
+        if not f_mode:
             f_mode = 'n'
-        self.font_mode = 'n' if not f_mode in fonts.fonts[style['f']] else f_mode
+        self.font_mode = 'n' if f_mode not in fonts.fonts[style['f']] else f_mode
 
         self.font = fonts.get_font(self.font_family, self.font_mode)
 
@@ -322,45 +322,41 @@ class PDFTextLine:
         """
         if not self.started:
             if word.isspace():
-                if self.firstWordAdded:
-                    self.started = True
-                    self.add_accumulated()
-                    return {'status': 'added'}
-                else:
+                if not self.firstWordAdded:
                     return {'status': 'ignored'}
+                self.started = True
+                self.add_accumulated()
             else:
                 self.firstWordAdded = True
                 self.next_line.line_parts[-1].add_word(word)
-                return {'status': 'added'}
+            return {'status': 'added'}
         else:
             if word.isspace():
                 if self.is_last_word_space:
                     return {'status': 'ignored'}
-                else:
-                    self.add_accumulated()
-                    return {'status': 'added'}
+                self.add_accumulated()
+                return {'status': 'added'}
             else:
                 self.is_last_word_space = False
                 self.next_line.line_parts[-1].add_word(word)
                 if (self.min_width + self.next_line.min_width < self.max_width):
                     return {'status': 'preadded'}
-                else:
-                    if (
-                        len(self.line_parts[-1].words) and
-                        self.line_parts[-1].words[-1] == ' '
-                    ):
-                        self.line_parts[-1].pop_word(-1)
-                    self.next_line.firstWordAdded = True
-                    self.next_line.top_margin = self.bottom
-                    self.next_line.next_line = PDFTextLine(
-                        self.fonts, self.max_width, self.text_align
-                    )
-                    line_parts = self.next_line.line_parts
-                    self.next_line.next_line.line_parts = line_parts
-                    self.next_line.line_parts = []
-                    return {
-                        'status': 'finished', 'new_line': self.next_line
-                    }
+                if (
+                    len(self.line_parts[-1].words) and
+                    self.line_parts[-1].words[-1] == ' '
+                ):
+                    self.line_parts[-1].pop_word(-1)
+                self.next_line.firstWordAdded = True
+                self.next_line.top_margin = self.bottom
+                self.next_line.next_line = PDFTextLine(
+                    self.fonts, self.max_width, self.text_align
+                )
+                line_parts = self.next_line.line_parts
+                self.next_line.next_line.line_parts = line_parts
+                self.next_line.line_parts = []
+                return {
+                    'status': 'finished', 'new_line': self.next_line
+                }
 
 class PDFTextBase:
     """Class that represents a rich text paragraph to be added to a
@@ -652,8 +648,7 @@ class PDFTextBase:
                 if not continue_:
                     return self.result
 
-        continue_ = self.add_current_line(True)
-        if continue_:
+        if continue_ := self.add_current_line(True):
             self.finished = True
         return self.result
 
@@ -902,7 +897,7 @@ class PDFTextBase:
             str: A string with all of the words passed.
         """
 
-        text = ''.join(word for word in words)
+        text = ''.join(words)
         if text != '':
             text = text.replace('\\',r'\\').replace('(','\(').replace(')','\)')
         return text
@@ -954,7 +949,7 @@ class PDFTextBase:
             str: representing the PDF stream
         """
         graphics = ''
-        if part.background is not None and not part.background.color is None:
+        if part.background is not None and part.background.color is not None:
             if part.background != self.last_fill:
                 self.last_fill = part.background
                 graphics += ' ' + str(self.last_fill)

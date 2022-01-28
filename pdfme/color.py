@@ -180,7 +180,8 @@ class PDFColor:
         return self.color == color.color and self.stroke == color.stroke
 
     def __neq__(self, color):
-        if color is None: return not self.color is None
+        if color is None:
+            return self.color is not None
         if not isinstance(color, PDFColor):
             raise TypeError("Can't compare PDFColor with {}".format(type(color)))
         return self.color != color.color or self.stroke != color.stroke
@@ -194,7 +195,7 @@ class PDFColor:
             )
         if len(self.color) == 3:
             return '{} {} {} {}'.format(
-                *[round(color, 3) for color in self.color[0:3]],
+                *[round(color, 3) for color in self.color[:3]],
                 'RG' if self.stroke else 'rg'
             )
 
@@ -240,7 +241,7 @@ def parse_color(color: ColorType) -> list:
                 raise TypeError("Couldn't parse hexagesimal color value: {}".format(color))
 
             n = len(color)
-            if n in [4, 5]:
+            if n in {4, 5}:
                 return [int(color[i:1+i] + color[i:1+i], 16)/255 for i in range(1,4)]
             else:
                 return [int(color[i:2+i], 16)/255 for i in range(1,7,2)]

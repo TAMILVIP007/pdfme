@@ -68,10 +68,7 @@ def parse_obj(obj: ObjectType) -> bytes:
     elif isinstance(obj, PDFRef):
         return obj.ref
     elif isinstance(obj, dict):
-        if '__stream__' in obj:
-            return parse_stream(obj)
-        else:
-            return parse_dict(obj)
+        return parse_stream(obj) if '__stream__' in obj else parse_dict(obj)
     elif isinstance(obj, (list, tuple, set)):
         return parse_list(obj)
     elif isinstance(obj, bytes):
@@ -98,7 +95,7 @@ def parse_dict(obj: dict) -> bytes:
     for key, value in obj.items():
         bytes_ += b'/' + key.encode('latin')
         ret = parse_obj(value)
-        if not ret[0] in [b'/', b'(', b'<']: bytes_ += b' '
+        if ret[0] not in [b'/', b'(', b'<']: bytes_ += b' '
         bytes_ += ret
 
     return bytes_ + b'>>'
@@ -116,7 +113,7 @@ def parse_list(obj: Iterable) -> bytes:
     bytes_ = b'['
     for i, value in enumerate(obj):
         ret = parse_obj(value)
-        if not ret[0] in [b'/', b'(', b'<'] and i != 0: bytes_ += b' '
+        if ret[0] not in [b'/', b'(', b'<'] and i != 0: bytes_ += b' '
         bytes_ += ret
 
     return bytes_ + b']'

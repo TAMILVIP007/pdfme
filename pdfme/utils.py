@@ -112,29 +112,24 @@ def parse_margin(margin: MarginType) -> dict:
 
     if isinstance(margin, str):
         margin = re.split(',| ', margin)
-        if len(margin) == 1:
-            margin = float(margin)
-        else:
-            margin = [float(x) for x in margin]
-
+        margin = float(margin) if len(margin) == 1 else [float(x) for x in margin]
     if isinstance(margin, (int, float)):
         margin = [margin] * 4
 
-    if isinstance(margin, (list, tuple)):
-        if len(margin) == 0:
-            margin = [0] * 4
-        elif len(margin) == 1:
-            margin = margin * 4
-        elif len(margin) == 2:
-            margin = margin * 2
-        elif len(margin) == 3:
-            margin = margin + [margin[1]]
-        elif len(margin) > 4:
-            margin = margin[0:4]
-
-        return {k: v for k, v in zip(['top', 'right', 'bottom', 'left'], margin)}
-    else:
+    if not isinstance(margin, (list, tuple)):
         raise TypeError('margin property must be of type str, int, list or dict')
+    if len(margin) == 0:
+        margin = [0] * 4
+    elif len(margin) == 1:
+        margin = margin * 4
+    elif len(margin) == 2:
+        margin = margin * 2
+    elif len(margin) == 3:
+        margin = margin + [margin[1]]
+    elif len(margin) > 4:
+        margin = margin[:4]
+
+    return dict(zip(['top', 'right', 'bottom', 'left'], margin))
 
 
 def parse_style_str(style_str: str, fonts: 'PDFFonts') -> dict:
@@ -176,7 +171,7 @@ def parse_style_str(style_str: str, fonts: 'PDFFonts') -> dict:
             if attrs[0] == '':
                 continue
             attr = attrs[0].strip()
-            if not attr in ['b', 'i', 'u']:
+            if attr not in ['b', 'i', 'u']:
                 raise ValueError(
                     'Style elements with no paramter must be whether "b" for '
                     'bold, "i" for italics(Oblique) or "u" for underline.'
@@ -316,10 +311,8 @@ def to_roman(n: int) -> str:
     """
     if not (0 < n < 4000):
         raise Exception('0 < n < 4000')
-    roman = ''
     n = str(int(n))
-    if len(n) > 0:
-        roman = _roman_ten(int(n[-1]), 'I', 'V', 'X')
+    roman = _roman_ten(int(n[-1]), 'I', 'V', 'X') if n != '' else ''
     if len(n) > 1:
         roman = _roman_ten(int(n[-2]), 'X', 'L', 'C') + roman
     if len(n) > 2:

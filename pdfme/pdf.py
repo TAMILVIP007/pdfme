@@ -420,7 +420,7 @@ class PDF:
 
         if move == 'bottom':
             self.page.y += height
-        if move == 'next':
+        elif move == 'next':
             self.page.x += width
 
     def image(
@@ -505,8 +505,7 @@ class PDF:
         elif isinstance(content, (list, tuple)):
             content = {'style': style, '.': content}
         elif isinstance(content, dict):
-            style_str = [k[1:] for k in content.keys() if k.startswith('.')]
-            if len(style_str) > 0:
+            if style_str := [k[1:] for k in content.keys() if k.startswith('.')]:
                 style.update(parse_style_str(style_str[0], self.fonts))
             style.update(process_style(content.get('style'), self))
             content['style'] = style
@@ -573,8 +572,7 @@ class PDF:
             'list_style': list_style
         })
         content = self._init_text(content)
-        pdf_text = PDFText(content, fonts=self.fonts, pdf=self, **par_style)
-        return pdf_text
+        return PDFText(content, fonts=self.fonts, pdf=self, **par_style)
 
     def _add_text(
         self, text_stream: str, x: Number=None, y: Number=None,
@@ -615,7 +613,7 @@ class PDF:
                     )
             elif id_.startswith('$uri:'):
                 link = id_[5:]
-                if not link in self.uris:
+                if link not in self.uris:
                     uri = self.base.add(
                         {'Type': b'/Action', 'S': b'/URI', 'URI': link}
                     )
@@ -639,7 +637,7 @@ class PDF:
 
         if move == 'bottom':
             self.page.y += height
-        if move == 'next':
+        elif move == 'next':
             self.page.x += width
 
     def _text(
@@ -732,11 +730,10 @@ class PDF:
         """
         style_ = self._default_content_style()
         style_.update(process_style(style, self))
-        pdf_table = PDFTable(
+        return PDFTable(
             content, self.fonts, x, y, width, height,
             widths, style_, borders, fills, self
         )
-        return pdf_table
 
     def _table(
         self, content: Union[Iterable, 'PDFTable'], width: Number=None,
@@ -774,7 +771,7 @@ class PDF:
 
         if move == 'bottom':
             self.page.y += pdf_table.current_height
-        if move == 'next':
+        elif move == 'next':
             self.page.x += width
 
         return pdf_table
@@ -818,8 +815,7 @@ class PDF:
         content = content.copy()
         style.update(process_style(content.get('style'), self))
         content['style'] = style
-        pdf_content = PDFContent(content, self.fonts, x, y, width, height, self)
-        return pdf_content
+        return PDFContent(content, self.fonts, x, y, width, height, self)
 
     def _content(
         self, content: Union[dict, 'PDFContent'], width: Number=None,
@@ -852,7 +848,7 @@ class PDF:
 
         if move == 'bottom':
             self.page.y += pdf_content.current_height
-        if move == 'next':
+        elif move == 'next':
             self.page.x += width
 
         return pdf_content
@@ -952,15 +948,14 @@ class PDF:
             first_level (bool, optional): whether you are calling this method
                 from outside (True) or recursively from inside (False).
         """
-        k = 7
-        new_keys = []
-        new_vals = []
-        i = 0
         length = len(keys)
         obj = None
         count = 0
 
-        while i < length:
+        k = 7
+        new_keys = []
+        new_vals = []
+        for i in range(length):
             key = keys[i]
             val = vals[i]
             if i % k == 0:
@@ -981,11 +976,9 @@ class PDF:
                 new_keys.append(obj.id)
                 new_vals.append(obj['Limits'])
 
-            i += 1
-
         if count == 1:
             del obj['Limits']
-            if not 'Names' in self.root: self.root['Names'] = {}
+            if 'Names' not in self.root: self.root['Names'] = {}
             self.root['Names']['Dests'] = obj.id
         else:
             self._build_dests_tree(new_keys, new_vals, False)
@@ -994,7 +987,7 @@ class PDF:
         """Method to create and add the dests tree to the document.
         """
         dests = list(self.dests.keys())
-        if len(dests) == 0:
+        if not dests:
             return
         dests.sort()
         self._build_dests_tree(dests, [self.dests[k] for k in dests])

@@ -115,7 +115,7 @@ class PDFPage:
             rect (list): a list with the following information about the
                 annotation: [x, y, width, height].
         """
-        if not 'Annots' in self.page:
+        if 'Annots' not in self.page:
             self.page['Annots'] = []
         _obj = {'Type': b'/Annot', 'Subtype': b'/Link'}
         _obj.update(obj)
@@ -159,7 +159,7 @@ class PDFPage:
             height (int, float): the height of the image.
         """
         self.page['Resources'].setdefault('XObject', {})
-        if not image_obj_id in self.x_objects:
+        if image_obj_id not in self.x_objects:
             image_id = 'Im{}'.format(len(self.page['Resources']['XObject']))
             self.page['Resources']['XObject'][image_id] = image_obj_id
             self.x_objects[image_obj_id] = image_id

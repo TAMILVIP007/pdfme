@@ -242,9 +242,7 @@ class PDFTrueTypeFont(PDFFont):
             ascent = hhea.ascent * scale
             descent = hhea.descent * scale
 
-        os2 = self.font.get('OS/2')
-
-        if os2:
+        if os2 := self.font.get('OS/2'):
             usWeightClass = os2.usWeightClass
             fsType = os2.fsType
             if (fsType == 0x0002 or (fsType & 0x0300) != 0):
@@ -269,11 +267,11 @@ class PDFTrueTypeFont(PDFFont):
 
         flags = 4
         if (italicAngle!= 0):
-            flags = flags | 64
+            flags |= 64
         if (usWeightClass >= 600):
-            flags = flags | 262144
-        if (post.isFixedPitch):
-            flags = flags | 1
+            flags |= 262144
+        if post.isFixedPitch:
+            flags |= 1
 
         return {
             'Type': b'/FontDescriptor',
@@ -366,7 +364,7 @@ class PDFFonts:
                 ``n``, ``b``, ``i`` or ``bi``.
         """
         font = PDFTrueTypeFont('F'+str(self.index), path)
-        if not font_family in self.fonts:
+        if font_family not in self.fonts:
             self.fonts[font_family] = {'n': font}
         self.fonts[font_family][mode] = font
         self.index += 1
